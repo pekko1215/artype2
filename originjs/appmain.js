@@ -287,6 +287,8 @@ function main() {
                             if(rand(20)){
                                 ret = "BIG"+(num+1);
                                 if(!rand(12)) ret = "リーチ目リプレイ";
+                                if(!rand(8)) ret = "スイカ";
+                                if(!rand(8)) ret = "共通ベル";
                             }
                         } else {
                             ret = bonusflag;
@@ -310,7 +312,7 @@ function main() {
                 ret = "JACGAME"
                 break;
         }
-        effect(ret,lot,{gamemode,rt,segments,bonusflag});
+        effect(ret,lot,{rt,segments,bonusflag});
         lastControl = ret;
         console.log(ret);
         return ret;
@@ -379,41 +381,13 @@ function main() {
     })
     var okure = false;
     var muon = false;
-    var sounder = new Sounder();
-
-    sounder.addFile("sound/stop.wav", "stop").addTag("se");
-    sounder.addFile("sound/start.wav", "start").addTag("se");
-    sounder.addFile("sound/bet.wav", "3bet").addTag("se");
-    sounder.addFile("sound/pay.wav", "pay").addTag("se");
-    sounder.addFile("sound/replay.wav", "replay").addTag("se");
-    sounder.addFile("sound/BIG1.mp3", "BIG1").addTag("bgm")
-    sounder.addFile("sound/rt1.mp3", "RT1").addTag("bgm")
-    sounder.addFile("sound/rt2.mp3", "RT2").addTag("bgm");
-    sounder.addFile("sound/title.wav",'title').addTag("se");
-    sounder.addFile("sound/type.mp3",'type').addTag("se");
-    sounder.addFile("sound/yokoku.wav",'yokoku').addTag("se");
-    sounder.addFile("sound/kokuti.mp3",'kokuti').addTag("se");
-    sounder.addFile("sound/syoto.mp3","syoto").addTag("se");
-    sounder.addFile("sound/syotoyokoku.mp3","syotoyokoku").addTag("se");
-    sounder.addFile("sound/cherry.mp3","cherry").addTag("se");
-    sounder.addFile("sound/bigpay.mp3","bigpay").addTag("se");
-    sounder.addFile("sound/spstop.mp3","spstop").addTag("se");
-    sounder.addFile("sound/bita.mp3","bita").addTag("se");
-    sounder.addFile("sound/roulette.mp3","roulette").addTag("se");
-
-    sounder.setVolume("se", 0.2)
-    sounder.setVolume("bgm", 0.1)
-    sounder.loadFile(function() {
-        window.sounder = sounder
-        console.log(sounder)
-    })
 
     var normalLotter = new Lotter(lotdata.normal);
     var bigLotter = new Lotter(lotdata.big);
     var jacLotter = new Lotter(lotdata.jac);
 
 
-    var gamemode = "normal";
+    window.gamemode = "normal";
     window.bonusflag = null
     var coin = 0;
 

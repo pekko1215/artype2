@@ -307,6 +307,7 @@ SlotModuleMk2.prototype.UpdatePlayingStatus = function() {
                 },
                 replay: () => {
                     this.playControlData.playingStatus = "beted"
+                    this.emit("payend")
                 }
             })
             break;

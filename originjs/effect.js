@@ -119,12 +119,17 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                 bonusTypeKokutiFlag = true;
                 sounder.playSound('bonuskokuti');
                 $('.nabi').addClass('on');
-                await slotmodule.once('bet');
-                if(bonusflag == 'BIG1'){
-                    $('#nabi3').removeClass('on');
-                }else{
-                    $('#nabi1').removeClass('on');
-                    $('#nabi2').removeClass('on');
+            }else{
+                if(kokutid){
+                    await slotmodule.once('bet');
+                    if(bonusflag == 'BIG1'){
+                        $('#nabi3').removeClass('on');
+                    }else{
+                        $('#nabi1').removeClass('on');
+                        $('#nabi2').removeClass('on');
+                    }
+                    await slotmodule.once('allreelstop');
+                    return;
                 }
             }
             switch (lot) {

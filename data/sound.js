@@ -22,6 +22,9 @@ sounder.addFile("sound/roulette.mp3","roulette").addTag("se");
 sounder.addFile("sound/histart.mp3","histart").addTag("se");
 sounder.addFile("sound/hiroulette.mp3","hiroulette").addTag("bgm");
 sounder.addFile("sound/hirouletteend.mp3","hirouletteend").addTag("bgm");
+sounder.addFile("sound/bonuskokuti.mp3","bonuskokuti").addTag("se");
+
+
 
 sounder.setVolume("se", 0.2)
 sounder.setVolume("bgm", 0.1)

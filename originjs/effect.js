@@ -1,5 +1,5 @@
 var kokutid = false;
-
+var bonusTypeKokutiFlag = false;
 const EffectUtilities = { atEffect, spStop };
 
 async function sleep(time) {
@@ -115,6 +115,23 @@ var isHi;
 async function effect(lot, orig, { rt, segments, bonusflag }) {
     switch (gamemode) {
         case 'normal':
+            if(kokutid && !bonusTypeKokutiFlag){
+                bonusTypeKokutiFlag = true;
+                sounder.playSound('bonuskokuti');
+                $('.nabi').addClass('on');
+            }else{
+                if(kokutid){
+                    await slotmodule.once('bet');
+                    if(bonusflag == 'BIG1'){
+                        $('#nabi3').removeClass('on');
+                    }else{
+                        $('#nabi1').removeClass('on');
+                        $('#nabi2').removeClass('on');
+                    }
+                    await slotmodule.once('allreelstop');
+                    return;
+                }
+            }
             switch (lot) {
                 case '3択子役1':
                 case '3択子役2':
@@ -163,11 +180,11 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                         }
                     }
                     if (stop3Flag && !rt.mode) {
-                        if (bonusflag) kokutid = true;
 
                         // 発展
                         if (bonusflag && rand(4)) isHi = true;
                         if (!bonusflag && !rand(4)) isHi = true;
+                        if (bonusflag && !lot.includes('BIG')) isHi = true;
                         if (rt.mode) isHi = false;
                         await slotmodule.once('payend');
                         if (gamemode != 'normal') return;
@@ -259,17 +276,20 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                             await sleep(410)
                         }
                         if(bonusflag){
+                            kokutid = true;
                             segments.effectseg.setOnce(2, '7');
                             slotmodule.clearFlashReservation();
                             slotmodule.setFlash(flashdata.blue);
                             await sounder.playSound('kokuti');
                             await sleep(1000);
                             slotmodule.resume();
+                            slotmodule.clearFlashReservation();
                         }else{
                             await sleep(1000);
                             slotmodule.clearFlashReservation();
                             slotmodule.resume();
                         }
+                        isHi = false;
                     }
                     if (!kokutid && bonusflag && !rand(3)) {
                         slotmodule.once('allreelstop', () => {
@@ -284,6 +304,7 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
             break;
         case 'big':
             kokutid = false;
+            bonusTypeKokutiFlag = false;
     }
 
 }

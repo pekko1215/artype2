@@ -256,7 +256,7 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                                 segments.effectseg.setOnce(1, '' + (i + 1));
                                 segments.effectseg.setOnce(3, '' + (i + 1));
                             }
-                            await sleep(400)
+                            await sleep(410)
                         }
                         if(bonusflag){
                             segments.effectseg.setOnce(2, '7');

@@ -72,6 +72,7 @@ function main() {
                             }
                             sounder.stopSound("bgm");
                             setGamemode('big');
+                            $('.nabi').removeClass('on');
                             var currentBig = bgmData[sbig?'SBIG':'BIG'];
                             sounder.playSound('BIG1', true, null, 1.156)
                             bonusdata = {

@@ -103,7 +103,7 @@ const SpStopTable = {
             value: 1 / 3,
             table: [30, 70]
         }, {
-            value: 2 / 3,
+            value: 1 / 3,
             table: [10, 35, 35, 10, 10]
         }].reverse(),
     }
@@ -119,18 +119,15 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                 bonusTypeKokutiFlag = true;
                 sounder.playSound('bonuskokuti');
                 $('.nabi').addClass('on');
-            }else{
-                if(kokutid){
-                    await slotmodule.once('bet');
-                    if(bonusflag == 'BIG1'){
-                        $('#nabi3').removeClass('on');
-                    }else{
-                        $('#nabi1').removeClass('on');
-                        $('#nabi2').removeClass('on');
-                    }
-                    await slotmodule.once('allreelstop');
-                    return;
+                await slotmodule.once('bet');
+                sounder.playSound('yokoku');
+                if(bonusflag == 'BIG1'){
+                    $('#nabi3').removeClass('on');
+                }else{
+                    $('#nabi1').removeClass('on');
+                    $('#nabi2').removeClass('on');
                 }
+                // await slotmodule.once('allreelstop');
             }
             switch (lot) {
                 case '3択子役1':
@@ -221,6 +218,7 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                         stopCount++;
                         if (!isHi) {
                             if (bonusflag) {
+                                kokutid = true;
                                 if (!rand(8)) {
                                     segments.effectseg.setOnce(3, '6');
                                 } else {
@@ -305,6 +303,7 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
         case 'big':
             kokutid = false;
             bonusTypeKokutiFlag = false;
+            isHi = false;
     }
 
 }

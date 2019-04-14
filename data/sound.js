@@ -6,6 +6,7 @@ sounder.addFile("sound/bet.wav", "3bet").addTag("se");
 sounder.addFile("sound/pay.wav", "pay").addTag("se");
 sounder.addFile("sound/replay.wav", "replay").addTag("se");
 sounder.addFile("sound/BIG1.mp3", "BIG1").addTag("bgm")
+sounder.addFile("sound/SBIG.mp3", "SBIG").addTag("bgm")
 sounder.addFile("sound/rt1.mp3", "RT1").addTag("bgm")
 sounder.addFile("sound/rt2.mp3", "RT2").addTag("bgm");
 sounder.addFile("sound/title.wav",'title').addTag("se");
@@ -23,6 +24,9 @@ sounder.addFile("sound/histart.mp3","histart").addTag("se");
 sounder.addFile("sound/hiroulette.mp3","hiroulette").addTag("bgm");
 sounder.addFile("sound/hirouletteend.mp3","hirouletteend").addTag("bgm");
 sounder.addFile("sound/bonuskokuti.mp3","bonuskokuti").addTag("se");
+sounder.addFile("sound/uwanose.mp3","uwanose").addTag("se");
+sounder.addFile("sound/artend.mp3","artend").addTag("se");
+sounder.addFile("sound/nabi.mp3","nabi").addTag("se");
 
 
 

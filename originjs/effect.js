@@ -110,20 +110,25 @@ const SpStopTable = {
 }
 
 const HiEffectLoopTime = 3.321;
+const ARTBitaTable = {
+    GameCount: [1, 2, 3, 5, 10, 30, 50, 101, 102, 103],
+    LotValue: [300, 300, 300, 50, 41, 3, 3, 1, 1, 1]
+}
 
 var isHi;
 async function effect(lot, orig, { rt, segments, bonusflag }) {
     switch (gamemode) {
         case 'normal':
-            if(kokutid && !bonusTypeKokutiFlag){
+            if (kokutid && !bonusTypeKokutiFlag) {
                 bonusTypeKokutiFlag = true;
                 sounder.playSound('bonuskokuti');
                 $('.nabi').addClass('on');
                 await slotmodule.once('bet');
+                if (gamemode != 'normal') return;
                 sounder.playSound('yokoku');
-                if(bonusflag == 'BIG1'){
+                if (bonusflag == 'BIG1') {
                     $('#nabi3').removeClass('on');
-                }else{
+                } else {
                     $('#nabi1').removeClass('on');
                     $('#nabi2').removeClass('on');
                 }
@@ -133,7 +138,31 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                 case '3択子役1':
                 case '3択子役2':
                 case '3択子役3':
-                    if (rt.mode) EffectUtilities.atEffect(lot);
+                    if (isART) {
+                        sounder.playSound('nabi')
+                        if (ARTStock > 0) {
+                            EffectUtilities.atEffect(lot);
+                            ARTStock--;
+                            changeARTSeg();
+                            if (ARTStock == 0) {
+                                slotmodule.once('payend', () => {
+                                    sounder.stopSound('bgm');
+                                    if (rt.mode) {
+                                        sounder.playSound('RT1', true);
+                                    } else {
+                                        ARTEndEffect();
+                                    }
+                                })
+                            }
+                        } else {
+                            slotmodule.once('payend', () => {
+                                if (!rt.mode) {
+                                    sounder.stopSound('bgm');
+                                    ARTEndEffect();
+                                }
+                            })
+                        }
+                    }
                     break
                 case 'リプレイ':
                     if (orig == null) break;
@@ -178,102 +207,113 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                     }
                     if (stop3Flag && !rt.mode) {
 
-                        // 発展
+                        // 発展フラグ
                         if (bonusflag && rand(4)) isHi = true;
                         if (!bonusflag && !rand(4)) isHi = true;
                         if (bonusflag && !lot.includes('BIG')) isHi = true;
-                        if (rt.mode) isHi = false;
-                        await slotmodule.once('payend');
-                        if (gamemode != 'normal') return;
-                        sounder.stopSound('bgm');
-                        await sleep(333);
-                        slotmodule.freeze();
-                        slotmodule.setFlash(flashdata.syoto);
-                        sounder.playSound('roulette');
-                        var stopCount = 0;
-                        setTimeout(async () => {
+                        if (isART) isHi = false;
 
-                        }, 1820);
-                        var shuffle = () => {
-                            setTimeout(() => {
-                                if (stopCount == 3) return;
-                                for (var i = 2; i >= stopCount; i--) {
-                                    segments.effectseg.setOnce(i + 1, '' + rand(10));
-                                }
-                                shuffle();
-                            }, 10)
+                        var skipFlag = false;
+                        if (isHi) {
+                            if (bonusflag && !rand(6)) skipFlag = true;
+                            if (!bonusflag && !rand(16)) skipFlag = true;
                         }
-                        shuffle();
 
-                        await sleep(1820);
-                        sounder.playSound('spstop');
-                        stopCount++;
-                        segments.effectseg.setOnce(1, '7');
-                        await sleep(333);
-                        sounder.playSound('spstop');
-                        stopCount++;
-                        segments.effectseg.setOnce(2, '7');
-                        await sleep(333);
-                        sounder.playSound('spstop');
-                        stopCount++;
-                        if (!isHi) {
-                            if (bonusflag) {
-                                kokutid = true;
-                                if (!rand(8)) {
-                                    segments.effectseg.setOnce(3, '6');
-                                } else {
-                                    segments.effectseg.setOnce(3, '7');
-                                }
-                                await sleep(1000);
-                                slotmodule.clearFlashReservation();
-                                segments.effectseg.setOnce(3, '7');
-                                slotmodule.setFlash(flashdata.blue);
-                                await sounder.playSound('kokuti');
-                                slotmodule.resume();
-                            } else {
-                                segments.effectseg.setOnce(3, '6');
-                                await sleep(1000);
-                                slotmodule.clearFlashReservation();
-                                slotmodule.resume();
+                        if (!skipFlag) {
+                            await slotmodule.once('payend');
+                            if (gamemode != 'normal') return;
+                            sounder.stopSound('bgm');
+                            await sleep(333);
+                            slotmodule.freeze();
+                            slotmodule.setFlash(flashdata.syoto);
+                            sounder.playSound('roulette');
+                            var stopCount = 0;
+
+                            var shuffle = () => {
+                                setTimeout(() => {
+                                    if (stopCount == 3) return;
+                                    for (var i = 2; i >= stopCount; i--) {
+                                        segments.effectseg.setOnce(i + 1, '' + rand(10));
+                                    }
+                                    shuffle();
+                                }, 10)
                             }
-                            return;
+                            shuffle();
+
+                            await sleep(1820);
+                            sounder.playSound('spstop');
+                            stopCount++;
+                            segments.effectseg.setOnce(1, '7');
+                            await sleep(333);
+                            sounder.playSound('spstop');
+                            stopCount++;
+                            segments.effectseg.setOnce(2, '7');
+                            await sleep(333);
+                            sounder.playSound('spstop');
+                            stopCount++;
+
+                            if (!isHi) {
+                                if (bonusflag) {
+                                    kokutid = true;
+                                    if (!rand(8)) {
+                                        segments.effectseg.setOnce(3, '6');
+                                    } else {
+                                        segments.effectseg.setOnce(3, '7');
+                                    }
+                                    await sleep(1000);
+                                    slotmodule.clearFlashReservation();
+                                    segments.effectseg.setOnce(3, '7');
+                                    slotmodule.setFlash(flashdata.blue);
+                                    await sounder.playSound('kokuti');
+                                    slotmodule.resume();
+                                    slotmodule.clearFlashReservation();
+                                } else {
+                                    segments.effectseg.setOnce(3, '6');
+                                    await sleep(1000);
+                                    slotmodule.clearFlashReservation();
+                                    slotmodule.resume();
+                                }
+                                return;
+                            }
+                            segments.effectseg.setOnce(3, 'H');
+    
+                            sounder.playSound('histart')
+                            await sleep(1000);
                         }
-                        segments.effectseg.setOnce(3, 'H');
-                        sounder.playSound('histart')
-                        await sleep(1000);
-                        
+                        //発展演出
+
                         var isShuffleEnd = false;
                         var segs = segments.effectseg.randomSeg().slice(1);
-                        var shuffle = ()=>{
-                            setTimeout(()=>{
-                                if(isShuffleEnd) return;
-                                segs.forEach(s=>s.next());
+                        var shuffle = () => {
+                            setTimeout(() => {
+                                if (isShuffleEnd) return;
+                                segs.forEach(s => s.next());
                                 shuffle();
-                            },50)
+                            }, 50)
                         }
                         shuffle();
 
                         slotmodule.clearFlashReservation();
                         slotmodule.resume();
-                        sounder.playSound('hiroulette',true);
+                        sounder.playSound('hiroulette', true);
                         await slotmodule.once('payend');
                         isShuffleEnd = true;
-                        if(gamemode != 'normal') return;
+                        if (gamemode != 'normal') return;
                         slotmodule.freeze();
                         sounder.stopSound('bgm');
                         sounder.playSound('hirouletteend');
                         segments.effectseg.setSegments('000');
-                        for(var i = 0;i < 7; i++){
+                        for (var i = 0; i < 7; i++) {
                             sounder.playSound('spstop');
-                            if(i % 2 == 1){
+                            if (i % 2 == 1) {
                                 segments.effectseg.setOnce(2, '' + (i + 1));
-                            }else{
+                            } else {
                                 segments.effectseg.setOnce(1, '' + (i + 1));
                                 segments.effectseg.setOnce(3, '' + (i + 1));
                             }
                             await sleep(410)
                         }
-                        if(bonusflag){
+                        if (bonusflag) {
                             kokutid = true;
                             segments.effectseg.setOnce(2, '7');
                             slotmodule.clearFlashReservation();
@@ -282,16 +322,23 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                             await sleep(1000);
                             slotmodule.resume();
                             slotmodule.clearFlashReservation();
-                        }else{
+                        } else {
                             await sleep(1000);
                             slotmodule.clearFlashReservation();
                             slotmodule.resume();
                         }
                         isHi = false;
                     }
-                    if (!kokutid && bonusflag && !rand(3)) {
+                    var bgmStopFlag = false;
+
+                    if (!kokutid && isART && bonusflag) {
+                        if (orig && orig.includes('BIG') && lot.includes('BIG')) bgmStopFlag = true;
+                        if (!orig && lot.includes('BIG') && rand(3)) bgmStopFlag = true;
+                    }
+                    if (bgmStopFlag) {
                         slotmodule.once('allreelstop', () => {
-                            sounder.stopSound('bgm');
+                            if (gamemode == 'normal')
+                                sounder.stopSound('bgm');
                         })
                     }
             }
@@ -304,6 +351,91 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
             kokutid = false;
             bonusTypeKokutiFlag = false;
             isHi = false;
+            if (lot == 'ボーナス小役1') return;
+            var segs = segments.effectseg.randomSeg().slice(1, 3);
+            segments.effectseg.setOnce(0, '-')
+            segments.effectseg.setOnce(3, '-')
+            var isShuffleEnd = false;
+            var shuffle = () => {
+                setTimeout(() => {
+                    if (isShuffleEnd) return;
+                    segs.forEach(s => s.next());
+                    shuffle();
+                }, 50)
+            }
+            shuffle();
+            sounder.playSound('yokoku');
+            var event = await slotmodule.once('reelstop');
+            var bitaMiss = false;
+            if (event.reel != 1 || slotmodule.getReelPos(1) != 0) {
+                isShuffleEnd = true;
+                segments.effectseg.reset();
+                bitaMiss = true
+            } else {
+                sounder.playSound('bita');
+            }
+
+            if (bitaMiss && !isHyper) return;
+            notChangeBonusSegFlag = true;
+            await slotmodule.once('allreelstop');
+            slotmodule.clearFlashReservation();
+            slotmodule.setFlash(flashdata.syoto);
+            isShuffleEnd = true;
+
+            var r = rand(1000);
+            var index = ARTBitaTable.LotValue.findIndex(v => {
+                r -= v;
+                return r < 0;
+            });
+
+            var appendGameCount = ARTBitaTable.GameCount[index];
+
+            if (bitaMiss) appendGameCount = 1;
+
+            ARTStock += appendGameCount;
+            sounder.playSound('uwanose')
+            var str = ("  " + appendGameCount).slice(-2);
+            var blinkFlag = false;
+            segments.effectseg.setOnce(0, '-')
+            segments.effectseg.setOnce(3, '-')
+            var blinker = (f) => {
+                setTimeout(() => {
+                    if (blinkFlag) return;
+                    if (f) {
+                        segments.effectseg.setOnce(1, str[0]);
+                        segments.effectseg.setOnce(2, str[1]);
+                    } else {
+                        segments.effectseg.setOnce(1, " ");
+                        segments.effectseg.setOnce(2, " ");
+                    }
+                    blinker(!f);
+                }, 20)
+            }
+            blinker(true);
+            await slotmodule.once('bet');
+            slotmodule.clearFlashReservation();
+            blinkFlag = true;
+            segments.effectseg.reset();
+            notChangeBonusSegFlag = false;
+
     }
+
+}
+
+
+function changeARTSeg() {
+    var str = ("00" + ARTStock).slice(-2);
+    segments.payseg.setSegments(str);
+}
+
+async function ARTEndEffect() {
+    var num = (coin - renGetCount);
+    if (num < 0) num = 0;
+    segments.effectseg.setSegments(num)
+    slotmodule.freeze();
+    slotmodule.setFlash(flashdata.syoto);
+    await sounder.playSound('artend');
+    slotmodule.clearFlashReservation();
+    slotmodule.resume();
 
 }

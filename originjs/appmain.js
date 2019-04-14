@@ -8,26 +8,34 @@ function main() {
     var kokutid;
     var kokuti;
     var lastControl;
+    window.ARTStock = 0;
+    window.isART = false;
+    window.notChangeBonusSegFlag = false;
+    window.isHyper = false;
     window.rt = {
         mode:null,
         game:250
     }
+    window.renGetCount = null;
     slotmodule.on("allreelstop", function(e) {
         if (e.hits != 0) {
-            if (e.hityaku.length == 0)
-                return
+            if (e.hityaku.length == 0) return
+            var {name} = e.hityaku[0];
             var matrix = e.hityaku[0].matrix;
             var count = 0;
             slotmodule.once("bet", function() {
                 slotmodule.clearFlashReservation()
             })
-            if (e.hityaku[0].name.indexOf("代替リプレイ") != -1 ||
-                e.hityaku[0].name.indexOf("リーチ目リプレイ") != -1 ||
-                e.hityaku[0].name.indexOf("ボーナス小役") != -1 ||
-                e.hityaku[0].name.indexOf("1枚役") != -1 ){
-                notplaypaysound = true;
-            } else {
-                notplaypaysound = false;
+            notplaypaysound = false;
+            if(gamemode == 'normal'){
+                if (name.includes("代替リプレイ")||
+                    name.includes("リーチ目リプレイ")||
+                    name.includes("ボーナス小役")||
+                    name.includes("1枚役")){
+                        notplaypaysound = true;
+                }
+            }
+            if(!notplaypaysound){
                 slotmodule.setFlash(null, 0, function(e) {
                     slotmodule.setFlash(flashdata.default, 20)
                     slotmodule.setFlash(replaceMatrix(flashdata.default, matrix, colordata.LINE_F, null), 20, arguments.callee)
@@ -60,6 +68,11 @@ function main() {
                         case "赤7":
                         case "青7":
                         case "BAR":
+                            if(isART){
+                                isHyper = true;
+                            }else{
+                                renGetCount = coin;
+                            }
                             var bgmData = {
                                 "BIG": {
                                     tag: "BIG1",
@@ -67,24 +80,25 @@ function main() {
                                 },
                                 "SBIG": {
                                     tag: "SBIG",
-                                    loopStart: 6.577
+                                    loopStart: 0
                                 }
                             }
                             sounder.stopSound("bgm");
                             setGamemode('big');
                             $('.nabi').removeClass('on');
-                            var currentBig = bgmData[sbig?'SBIG':'BIG'];
-                            sounder.playSound('BIG1', true, null, 1.156)
+                            var currentBig = bgmData[isHyper?'SBIG':'BIG'];
+                            sounder.playSound(currentBig.tag, true, null, currentBig.loopStart)
                             bonusdata = {
                                 bonusget:240,
                                 geted:0
                             }
                             bonusflag = null;
-                            changeBonusSeg()
-                            clearLamp()
+                            changeBonusSeg();
+                            clearLamp();
                             jacflag = false
                             kokuti = false;
                             kokutid = false;
+                            isART = true;
                             break;
                         case "チェリー":
                             matrix = matrix.map((arr) => {
@@ -135,23 +149,29 @@ function main() {
                 case 'リプレイ高確率':
                     if(/3択子役/.test(lastControl)){
                         if(e.pay == 0){
-                            sounder.stopSound('bgm');
                             rt.mode = null;
                             rt.game = -1;
-                            segments.effectseg.setSegments('');
+                            if(ARTStock == 0){
+                                isART = false;
+                                sounder.stopSound('bgm');
+                            }
                         }
                     }
                 break
             }
         }
-        console.log(e)
         if(gamemode != 'normal' && bonusdata.geted + e.pay >= bonusdata.bonusget){
             rt.mode = 'リプレイ高確率';
             setGamemode('normal');
             sounder.stopSound("bgm")
             segments.effectseg.reset();
+            isART = true;
             slotmodule.once("payend", function() {
-                if(rt.mode) sounder.playSound('RT1',true);
+                if(ARTStock == 0){
+                    sounder.playSound('RT1',true);
+                }else{
+                    sounder.playSound('RT2',true);
+                }
             })
         }
         if ((gamemode == 'jac'||gamemode == 'reg')  && ( bonusdata.jacgamecount == 0 || bonusdata.jacgetcount == 0)) {
@@ -192,8 +212,8 @@ function main() {
                 }
             })(e)
         }
-        if (gamemode == "jac") {
-            segments.payseg.setSegments(bonusdata.jacgamecount)
+        if (isART) {
+            changeARTSeg();
         } else {
             segments.payseg.reset();
         }
@@ -294,7 +314,6 @@ function main() {
                         } else {
                             ret = bonusflag;
                         }
-                        rt.mode = null
                         break;
                     default:
                         ret = "はずれ"
@@ -314,6 +333,7 @@ function main() {
                 break;
         }
         effect(ret,lot,{rt,segments,bonusflag});
+        if(bonusflag) rt.mode = null
         lastControl = ret;
         console.log(ret);
         return ret;
@@ -390,7 +410,7 @@ function main() {
 
     window.gamemode = "normal";
     window.bonusflag = null
-    var coin = 0;
+    window.coin = 0;
 
     var bonusdata;
     var replayflag;
@@ -442,7 +462,7 @@ function main() {
             outcoin: outcoin,
             playcount: playcount,
             allplaycount: allplaycount,
-            name: "ツインセブン",
+            name: "ARType2",
             id: "twinseven"
         }
     }
@@ -527,7 +547,7 @@ function main() {
         }
     }
 
-    var segments = {
+    window.segments = {
         creditseg: segInit("#creditSegment", 2),
         payseg: segInit("#paySegment", 2),
         effectseg: segInit("#effectSegment", 4)
@@ -556,7 +576,7 @@ function main() {
     }
 
     function changeBonusSeg() {
-        if(gamemode != 'normal'){
+        if(gamemode != 'normal' && !notChangeBonusSegFlag){
             var val = bonusdata.bonusget - bonusdata.geted;
             val = val < 0 ? 0 : val;
             segments.effectseg.setSegments(""+val);
@@ -667,7 +687,7 @@ function flipMatrix(base) {
 function segInit(selector, size) {
     var cangvas = $(selector)[0];
     var sc = new SegmentControler(cangvas, size, 0, -3, 79, 46);
-    sc.setOffColor(120, 120, 120)
+    sc.setOffColor(15, 15, 15)
     sc.setOnColor(230, 0, 0)
     sc.reset();
     return sc;

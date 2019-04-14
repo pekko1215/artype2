@@ -205,7 +205,7 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                             sounder.playSound('yokoku')
                         }
                     }
-                    if (stop3Flag && !rt.mode) {
+                    if (stop3Flag && (!isART || bonusflag)) {
 
                         // 発展フラグ
                         if (bonusflag && rand(4)) isHi = true;
@@ -394,6 +394,7 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
 
             ARTStock += appendGameCount;
             sounder.playSound('uwanose')
+            if(appendGameCount > 100) appendGameCount -= 100;
             var str = ("  " + appendGameCount).slice(-2);
             var blinkFlag = false;
             segments.effectseg.setOnce(0, '-')
@@ -437,5 +438,5 @@ async function ARTEndEffect() {
     await sounder.playSound('artend');
     slotmodule.clearFlashReservation();
     slotmodule.resume();
-
+    isART = false;
 }

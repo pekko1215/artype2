@@ -228,7 +228,7 @@ function main() {
         if (!("paycount" in e)) {
             e.paycount = 0
             e.se = "pay";
-            if(gamemode != "normal"){
+            if(prevGameMode != "normal"){
                 e.se = "cherry"
                 if(pays == 15){
                     e.se = "bigpay"
@@ -307,9 +307,9 @@ function main() {
                             ret = bonusflag = 'BIG'+(~~(num%2)+1);
                             if(rand(20)){
                                 ret = "BIG"+(num+1);
-                                if(!rand(12)) ret = "リーチ目リプレイ";
-                                if(!rand(8)) ret = "スイカ";
-                                if(!rand(8)) ret = "共通ベル";
+                                if(!rand(6)) ret = "リーチ目リプレイ";
+                                if(!rand(24)) ret = "スイカ";
+                                if(!rand(24)) ret = "共通ベル";
                             }
                         } else {
                             ret = bonusflag;
@@ -332,6 +332,7 @@ function main() {
                 ret = "JACGAME"
                 break;
         }
+        if(ret == 'リプレイ' && bonusflag && !rand(2)) ret = 'リーチ目リプレイ'
         effect(ret,lot,{rt,segments,bonusflag});
         if(bonusflag) rt.mode = null
         lastControl = ret;
@@ -521,8 +522,9 @@ function main() {
         changeCredit(0)
     }
 
-
+    var prevGameMode = 'normal'
     var setGamemode = function(mode) {
+        prevGameMode = mode;
         switch (mode) {
             case 'normal':
                 gamemode = 'normal'

@@ -50,8 +50,12 @@ const SpStopTable = {
                 [0, 1, 1],
                 [0, 1, 2],
                 [0, 2, 2],
+                [1, 0, 1],
+                [1, 0, 2],
+                [2, 0, 2],
             ], [
                 [0, 0, 1],
+                [2, 0, 3],
                 [0, 0, 2],
                 [0, 0, 3],
                 [0, 3, 3],
@@ -106,6 +110,16 @@ const SpStopTable = {
             value: 1 / 3,
             table: [10, 35, 35, 10, 10]
         }].reverse(),
+        成立後: [{
+            value: 3 / 4,
+            table: [100]
+        }, {
+            value: 3 / 4,
+            table: [30, 70]
+        }, {
+            value: 5 / 6,
+            table: [10, 35, 35, 10, 10]
+        }].reverse()
     }
 }
 
@@ -134,6 +148,7 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                 }
                 // await slotmodule.once('allreelstop');
             }
+            var after = false
             switch (lot) {
                 case '3択子役1':
                 case '3択子役2':
@@ -170,18 +185,21 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                 case 'スイカ':
                 case 'はずれ':
                 case 'リーチ目リプレイ':
-                case 'BIG1':
-                case 'BIG2':
                 case 'BIG3':
                 case 'BIG4':
+                    var after = bonusflag;
+                case 'BIG1':
+                case 'BIG2':
                 case 'BIG5':
                 case 'BIG6':
                     if (kokutid) break;
                     if (isHi) break;
                     var lotName = lot;
                     if (bonusflag) lotName = 'BIG';
+                    if (after) lotName = '成立後'
                     var lotTable = SpStopTable.LotTable[lotName]
                     var stop3Flag = false;
+                    var spStopStack = [];
                     var spStopFlag = lotTable.some((data, _i) => {
                         var i = 2 - _i;
                         var r = Math.random();
@@ -194,17 +212,14 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                             var arr = SpStopTable.EffectTable[i][idx];
                             var pattern = arr[rand(arr.length)];
                             pattern.forEach((v, i) => {
-                                EffectUtilities.spStop(i, v);
+                                spStopStack.push(v);
                             })
                             if (pattern[2] > 0) stop3Flag = true;
                             return true;
                         }
                     })
-                    if (spStopFlag) {
-                        if ((bonusflag && !rand(2)) || (!bonusflag && !rand(4))) {
-                            sounder.playSound('yokoku')
-                        }
-                    }
+
+
                     if (stop3Flag && (!isART || bonusflag)) {
 
                         // 発展フラグ
@@ -220,6 +235,14 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                         }
 
                         if (!skipFlag) {
+                            if (spStopFlag) {
+                                if ((bonusflag && !rand(2)) || (!bonusflag && !rand(4))) {
+                                    sounder.playSound('yokoku')
+                                }
+                            }
+                            spStopStack.forEach((v,i)=>{
+                                EffectUtilities.spStop(i,v);
+                            })
                             await slotmodule.once('payend');
                             if (gamemode != 'normal') return;
                             sounder.stopSound('bgm');
@@ -328,6 +351,10 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                             slotmodule.resume();
                         }
                         isHi = false;
+                    }else{
+                        spStopStack.forEach((v,i)=>{
+                            EffectUtilities.spStop(i,v);
+                        })
                     }
                     var bgmStopFlag = false;
 

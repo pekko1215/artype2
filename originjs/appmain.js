@@ -71,6 +71,7 @@ function main() {
                             if(isART){
                                 isHyper = true;
                             }else{
+                                isHyper = false;
                                 renGetCount = coin;
                             }
                             var bgmData = {

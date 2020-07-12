@@ -39,10 +39,14 @@
         position: absolute;
     }
 
+    #segments {
+        position:absolute;
+        top:400px;
+    }
+
     #creditSegment {
         position: absolute;
         left: calc(72px - 8px);
-        top: calc(353px - 8px);
         width:131px;
         height: 74px;
     }
@@ -50,7 +54,6 @@
     #paySegment{
         position: absolute;
         left: calc(222px - 8px);
-        top: calc(353px - 8px);
         width:131px;
         height: 74px;
     }
@@ -58,7 +61,6 @@
     #effectSegment{
         position: absolute;
         left:calc(740px - 8px);
-        top: calc(352px - 8px);
         height: 74px;
         width: 188px;
     }
@@ -107,6 +109,12 @@
     .nabi.on{
         filter:brightness(200%);
     }
+
+    .stopLight {
+        position: absolute;
+    top: 315px;
+    left: 179px;
+    }
 </style>
 <body>
 <!-- <img src="img/panel.png"> -->
@@ -120,12 +128,21 @@
 <input id="dummyfiler" type="file" style="display: none;"/>
 <div id="test"></div>
 <input id="auto" type="button" value="オートプレイ" />
-<canvas id="creditSegment" width="120px" height="74px"></canvas>
-<canvas id="paySegment" width="120px" height="74px"></canvas>
-<canvas id="effectSegment" width="188px" height="74px"></canvas>
+<div id="segments">
+    <canvas id="creditSegment" width="120px" height="74px"></canvas>
+    <canvas id="paySegment" width="120px" height="74px"></canvas>
+    <canvas id="effectSegment" width="188px" height="74px"></canvas>    
+</div>
 <img src="./img/nabi1.png" class="nabi" id="nabi1">
 <img src="./img/nabi2.png" class="nabi" id="nabi2">
 <img src="./img/nabi3.png" class="nabi" id="nabi3">
+
+<div class="stopLight">
+    <img id="stop1" class="nabi" src="./img/stopmarker.png">
+    <img id="stop2" class="nabi" src="./img/stopmarker.png">
+    <img id="stop3" class="nabi" src="./img/stopmarker.png">
+</div>
+
 <div class="mark"></div>
 <div class="GameData">
 </div>

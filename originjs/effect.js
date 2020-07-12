@@ -16,9 +16,11 @@ function atEffect(idx) {
 
 async function spStop(timing, count) {
     timing++;
+    let v;
     for (; timing--;) {
-        await slotmodule.once('reelstop');
+        v = await slotmodule.once('reelstop');
     }
+    if (count) $('.stopLight>.nabi').eq(v.reel).removeClass('on');
     for (; count--;) {
         sounder.playSound('spstop');
         await sleep(100);
@@ -29,31 +31,44 @@ async function spStop(timing, count) {
 
 const SpStopTable = {
     EffectTable: [
-        [[[1, 0, 0]]], //1消灯
-        [            //2消灯
-            [[1, 1, 0]],
-            [[2, 2, 0], [1, 2, 0]]
+        [
+            [
+                [1, 0, 0]
+            ]
+        ], //1消灯
+        [ //2消灯
+            [
+                [1, 1, 0]
+            ],
+            [
+                [2, 2, 0],
+                [1, 2, 0]
+            ]
         ],
         [
             [
                 [1, 1, 1],
                 [1, 1, 2],
                 [1, 2, 2]
-            ], [
+            ],
+            [
                 [1, 2, 3],
                 [2, 2, 3],
-            ], [
+            ],
+            [
                 [2, 3, 3],
                 [1, 1, 3],
                 [1, 3, 3],
-            ], [
+            ],
+            [
                 [0, 1, 1],
                 [0, 1, 2],
                 [0, 2, 2],
                 [1, 0, 1],
                 [1, 0, 2],
                 [2, 0, 2],
-            ], [
+            ],
+            [
                 [0, 0, 1],
                 [2, 0, 3],
                 [0, 0, 2],
@@ -75,7 +90,7 @@ const SpStopTable = {
             table: [80, 20]
         }].reverse(),
         リプレイ: [{
-            value: 1 / 12,
+            value: 1 / 6,
             table: [100]
         }, {
             value: 0
@@ -129,8 +144,10 @@ const ARTBitaTable = {
     LotValue: [300, 300, 300, 50, 41, 3, 3, 1, 1, 1]
 }
 
+
 var isHi;
 async function effect(lot, orig, { rt, segments, bonusflag }) {
+    $('.stopLight>.nabi').addClass('on');
     switch (gamemode) {
         case 'normal':
             if (kokutid && !bonusTypeKokutiFlag) {
@@ -140,36 +157,50 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                 await slotmodule.once('bet');
                 if (gamemode != 'normal') return;
                 sounder.playSound('yokoku');
-                if (bonusflag == 'BIG1') {
-                    $('#nabi3').removeClass('on');
-                } else {
-                    $('#nabi1').removeClass('on');
-                    $('#nabi2').removeClass('on');
+                switch(bonusflag){
+                    case 'BIG1':
+                        $('#nabi3').removeClass('on');
+                    break
+                    case 'BIG2':
+                        $('#nabi1').removeClass('on');
+                        $('#nabi2').removeClass('on');
+                    break
+                    case 'REG':
+                        $('#nabi2').removeClass('on');
                 }
-                // await slotmodule.once('allreelstop');
             }
             var after = false
             switch (lot) {
+                case 'チェリー':
+                    sounder.playSound('yokoku')
+                break
                 case '3択子役1':
                 case '3択子役2':
                 case '3択子役3':
-                    if (isART) {
-                        sounder.playSound('nabi')
+                    if (isART || !rand(64)) {
+                        if (!(isART && !ARTStock)) {
+                            EffectUtilities.atEffect(lot);
+                        }
+                        slotmodule.freeze();
+                        await sounder.playSound('nabi')
+                        slotmodule.resume();
                         if (ARTStock > 0) {
                             EffectUtilities.atEffect(lot);
-                            ARTStock--;
                             changeARTSeg();
-                            if (ARTStock == 0) {
-                                slotmodule.once('payend', () => {
+                            slotmodule.once('payend', () => {
+                                ARTStock--;
+                                if (ARTStock == 0) {
                                     sounder.stopSound('bgm');
                                     if (rt.mode) {
                                         sounder.playSound('RT1', true);
                                     } else {
                                         ARTEndEffect();
                                     }
-                                })
-                            }
+                                }
+                            })
+
                         } else {
+                            if (!isART) break;
                             slotmodule.once('payend', () => {
                                 if (!rt.mode) {
                                     sounder.stopSound('bgm');
@@ -192,11 +223,29 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                 case 'BIG2':
                 case 'BIG5':
                 case 'BIG6':
+                case 'REG':
                     if (kokutid) break;
                     if (isHi) break;
                     var lotName = lot;
                     if (bonusflag) lotName = 'BIG';
                     if (after) lotName = '成立後'
+
+                    if (bonusflag && !rand(8)) {
+                        let dummyLot = ['3択子役1', '3択子役2'][rand(2)];
+                        if (bonusflag == 'BIG2') {
+                            dummyLot = '3択子役3';
+                        }
+                        EffectUtilities.atEffect(dummyLot);
+                        slotmodule.freeze();
+                        await sounder.playSound('nabi');
+                        slotmodule.resume();
+
+                        slotmodule.once('payend', () => {
+
+                            sounder.stopSound('bgm');
+                        })
+                        break
+                    }
                     var lotTable = SpStopTable.LotTable[lotName]
                     var stop3Flag = false;
                     var spStopStack = [];
@@ -240,8 +289,8 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                                     sounder.playSound('yokoku')
                                 }
                             }
-                            spStopStack.forEach((v,i)=>{
-                                EffectUtilities.spStop(i,v);
+                            spStopStack.forEach((v, i) => {
+                                EffectUtilities.spStop(i, v);
                             })
                             await slotmodule.once('payend');
                             if (gamemode != 'normal') return;
@@ -299,7 +348,7 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                                 return;
                             }
                             segments.effectseg.setOnce(3, 'H');
-    
+
                             sounder.playSound('histart')
                             await sleep(1000);
                         }
@@ -351,9 +400,9 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                             slotmodule.resume();
                         }
                         isHi = false;
-                    }else{
-                        spStopStack.forEach((v,i)=>{
-                            EffectUtilities.spStop(i,v);
+                    } else {
+                        spStopStack.forEach((v, i) => {
+                            EffectUtilities.spStop(i, v);
                         })
                     }
                     var bgmStopFlag = false;
@@ -374,6 +423,11 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                 slotmodule.clearFlashReservation();
             })
             break;
+        case 'reg':
+            kokutid = false;
+            bonusTypeKokutiFlag = false;
+            isHi = false;
+            break
         case 'big':
             kokutid = false;
             bonusTypeKokutiFlag = false;
@@ -421,7 +475,7 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
 
             ARTStock += appendGameCount;
             sounder.playSound('uwanose')
-            if(appendGameCount > 100) appendGameCount -= 100;
+            if (appendGameCount > 100) appendGameCount -= 100;
             var str = ("  " + appendGameCount).slice(-2);
             var blinkFlag = false;
             segments.effectseg.setOnce(0, '-')

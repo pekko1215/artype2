@@ -1,0 +1,12 @@
+{
+  "name": "SlotModule",
+  "version": "3.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "pixi.js": "^5.3.3"
+  },
+  "devDependencies": {
+    "@types/pixi.js": "^5.0.0"
+  }
+}

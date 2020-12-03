@@ -157,14 +157,14 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
                 await slotmodule.once('bet');
                 if (gamemode != 'normal') return;
                 sounder.playSound('yokoku');
-                switch(bonusflag){
+                switch (bonusflag) {
                     case 'BIG1':
                         $('#nabi3').removeClass('on');
-                    break
+                        break
                     case 'BIG2':
                         $('#nabi1').removeClass('on');
                         $('#nabi2').removeClass('on');
-                    break
+                        break
                     case 'REG':
                         $('#nabi2').removeClass('on');
                 }
@@ -173,7 +173,7 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
             switch (lot) {
                 case 'チェリー':
                     sounder.playSound('yokoku')
-                break
+                    break
                 case '3択子役1':
                 case '3択子役2':
                 case '3択子役3':
@@ -427,6 +427,7 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
             kokutid = false;
             bonusTypeKokutiFlag = false;
             isHi = false;
+            ARTStock += !rand(4) && 1;
             break
         case 'big':
             kokutid = false;
@@ -471,7 +472,7 @@ async function effect(lot, orig, { rt, segments, bonusflag }) {
 
             var appendGameCount = ARTBitaTable.GameCount[index];
 
-            if (bitaMiss) appendGameCount = 1;
+            // if (bitaMiss) appendGameCount = 1;
 
             ARTStock += appendGameCount;
             sounder.playSound('uwanose')
@@ -516,7 +517,7 @@ async function ARTEndEffect() {
     segments.effectseg.setSegments(num)
     slotmodule.freeze();
     slotmodule.setFlash(flashdata.syoto);
-    await sounder.playSound('artend');
+    // await sounder.playSound('artend');
     slotmodule.clearFlashReservation();
     slotmodule.resume();
     isART = false;

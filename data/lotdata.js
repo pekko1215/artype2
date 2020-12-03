@@ -17,7 +17,7 @@ var lotdata = {
     },
     {
         name: "BIG",
-        value: 1 / 128
+        value: 1 / 318
     },
     {
         name: '共通ベル',
@@ -25,10 +25,10 @@ var lotdata = {
     },
     {
         name: 'チェリー',
-        value: 1 / 32
-    },{
-        name:'REG',
-        value:1/128
+        value: 1 / 192
+    }, {
+        name: 'REG',
+        value: 1 / 398
     }
 
     ],

@@ -1,1 +1,3 @@
 tools/splitjsonmaker/node_modules
+node_modules
+.cache

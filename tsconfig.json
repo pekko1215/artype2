@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "experimentalDecorators": true,
+    "target": "esnext",
+    "lib": [
+      "es2019",
+      "dom"
+    ],
+    "sourceMap": true,
+    "downlevelIteration": true,
+    "moduleResolution": "node",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+  }
+}

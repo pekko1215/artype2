@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "parcel src/index.html --open",
-    "build": "parcel build src/index.html --public-url https://pekko1215.github.io/artype2/"
+    "build": "parcel build src/index.html -d build --public-url '/artype2/'"
   },
   "license": "MIT",
   "dependencies": {

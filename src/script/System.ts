@@ -29,6 +29,11 @@ export class SlotClass extends SlotModule {
       isDummyBet: false,
       leverEffect: null
     }
+  MaxPayCoins = {
+    1: 12,
+    2: 15,
+    3: 15
+  }
   lastBonus: BonusFlag | null = null;
   lotter = new Lotter(...LotData[this.gameMode]);
   static async init() {
@@ -70,8 +75,11 @@ export class SlotClass extends SlotModule {
     if (pays === 0 && !replayFlag) return { isReplay: replayFlag };
 
     let payTag: string = "pay";
-
-    if (pays <= 4 && pays) payTag = "cherry";
+    let isLoop = true;
+    if (pays <= 4 && pays) {
+      payTag = "cherry";
+      isLoop = false;
+    }
     if (pays >= 14) payTag = "bigpay"
     if (!replayFlag && !noSE && payTag) {
       sounder.playSound(payTag, payTag !== "cherry");
@@ -105,7 +113,9 @@ export class SlotClass extends SlotModule {
       }
       await Sleep(50);
     }
-    sounder.stopSound(payTag)
+    if (isLoop) {
+      sounder.stopSound(payTag)
+    }
     return { isReplay: replayFlag };
   }
   async onPayEnd({ payCoin, hitYakus }: { payCoin: number, hitYakus: HitYakuData[] }) {
@@ -121,7 +131,6 @@ export class SlotClass extends SlotModule {
         this.emit('bonusEnd');
       };
     }
-    await this.effectManager.onPay(payCoin, hitYakus, this.gameMode, this.bonusFlag);
   }
   async onReelStop(_number: number) {
     sounder.playSound("stop")
@@ -224,6 +233,11 @@ export class SlotClass extends SlotModule {
 
 
     };
+
+    if (payCoin > this.MaxPayCoins[this.slotStatus.betCoin as (1 | 2 | 3)]) {
+      payCoin = this.MaxPayCoins[this.slotStatus.betCoin as (1 | 2 | 3)]
+    }
+
     (this.slotStatus.RTData.rt as RT).hitCheck(hitYakus)
     switch (name) {
       default:

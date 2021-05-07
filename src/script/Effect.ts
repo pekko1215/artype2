@@ -6,14 +6,13 @@ import { Bonus } from "./datas/Bonus";
 import { BonusFlag, GameMode, SaveData, Slot } from "./index";
 import { HitYakuData } from "./library/SlotModule/ReelController";
 import { sounder } from "./datas/Sound";
-import { Rand, RandomChoice, Sleep } from "./Utilities";
+import { ArrayLot, Rand, RandomChoice, Sleep } from "./Utilities";
 import { LotName, SlotLotBase } from "./datas/Lot";
 import { flashData } from "./datas/Flash";
 
 
 abstract class Effect {
     effectManager: EffectManager;
-    isAT: boolean = false;
 
     constructor(effectManager: EffectManager) {
         this.effectManager = effectManager;
@@ -98,6 +97,9 @@ class NormalEffect extends Effect {
     isART = false;
     isHatten = false;
     ARTStock = 0;
+    ExtraART = false;
+    ExtraARTLot = 0;
+    stop3Flag = false;
     renStartCoin: number = -1;
     SpStopTable = {
         EffectTable: [
@@ -231,6 +233,9 @@ class NormalEffect extends Effect {
     stopLightElements = Array.from(document.querySelectorAll("#stop1,#stop2,#stop3"))
     startCoin: number = 0;
     isHyper = false;
+    ExtraARTGame: number = 0;
+    static ExtraARTGameBase = 7;
+    isShuffleEnd: boolean = false;
     constructor(effectManager: EffectManager) {
         super(effectManager);
     }
@@ -291,7 +296,7 @@ class NormalEffect extends Effect {
         this.effectManager.Segments.EffectSeg.setSegments(num)
         Slot.freeze();
         Slot.flashController.setFlash(flashData.syoto);
-        // await sounder.playSound('artend');
+        await sounder.playSound('artend');
         Slot.flashController.clearFlashReservation();
         Slot.resume();
         this.isART = false;
@@ -299,15 +304,24 @@ class NormalEffect extends Effect {
     async onLot(lot: SlotLotBase, control: ControlName, gameMode: GameMode, bonusFlag: BonusFlag) {
         if (!this.isBonusTypeKokutid) this.setNabi([false, false, false]);
         this.setLight([true, true, true]);
+        this.stop3Flag = false;
+        if (this.ExtraART) {
+            this.effectManager.Segments.EffectSeg.setSegments(`-${this.ExtraARTGame}-`);
+        } else {
+        }
+
         switch (gameMode) {
             case 'Normal':
-                if (this.isKokutid && !this.isBonusTypeKokutid) {
+                let after = bonusFlag !== null;
+                if (!this.ExtraART && this.isART && this.ARTStock >= 0) {
+                    this.effectManager.Segments.EffectSeg.setSegments(`${this.ARTStock}`);
+                }
+                if (this.isKokutid && !this.isBonusTypeKokutid && gameMode === 'Normal') {
                     this.isBonusTypeKokutid = true;
                     sounder.playSound('bonuskokuti');
                     this.setNabi([false, false, false]);
                     await Slot.once('bet');
-                    if (gameMode !== "Normal") return;
-                    if (gameMode !== 'Normal') return;
+                    if (Slot.gameMode !== 'Normal') return;
                     sounder.playSound('yokoku');
                     switch (bonusFlag) {
                         case 'BIG1':
@@ -320,7 +334,6 @@ class NormalEffect extends Effect {
                             this.setNabi([true, false, true]);
                     }
                 }
-                let after = bonusFlag !== null;
                 switch (control) {
                     case ControlName.チェリー:
                         sounder.playSound('yokoku')
@@ -328,37 +341,15 @@ class NormalEffect extends Effect {
                     case ControlName["3択子役1"]:
                     case ControlName["3択子役2"]:
                     case ControlName["3択子役3"]:
-                        if (this.isART || !Rand(64)) {
-                            if (!(this.isART && !this.ARTStock)) {
+                        if (this.isART || this.ExtraART || !Rand(64)) {
+                            if (!this.isART || this.ARTStock > 0 || this.ExtraART) {
                                 this.atEffect(control);
+                                this.changeARTSeg();
+                                this.ARTStock--;
                             }
                             Slot.freeze();
                             await sounder.playSound('nabi')
                             Slot.resume();
-                            if (this.ARTStock > 0) {
-                                this.atEffect(control);
-                                this.changeARTSeg();
-                                Slot.once('payEnd', () => {
-                                    this.ARTStock--;
-                                    if (this.ARTStock == 0) {
-                                        sounder.stopSound('bgm');
-                                        if (RTData.rt instanceof HighRT) {
-                                            sounder.playSound('RT1', true);
-                                        } else {
-                                            this.ARTEndEffect();
-                                        }
-                                    }
-                                })
-
-                            } else {
-                                if (!this.isART) break;
-                                Slot.once('payEnd', () => {
-                                    if (!(RTData.rt instanceof HighRT)) {
-                                        sounder.stopSound('bgm');
-                                        this.ARTEndEffect();
-                                    }
-                                })
-                            }
                         }
                         break
                     case ControlName['リプレイ']:
@@ -394,17 +385,13 @@ class NormalEffect extends Effect {
                             await sounder.playSound('nabi');
                             Slot.resume();
 
-                            Slot.once('payEnd', () => {
-
-                                sounder.stopSound('bgm');
-                            })
                             break
                         }
                         let lotTable: EffectLotData[] = [];
                         if (lotName in this.SpStopTable.LotTable) {
                             lotTable = this.SpStopTable.LotTable[lotName]!;
                         }
-                        let stop3Flag = false;
+                        this.stop3Flag = false;
                         let spStopStack: number[] = [];
                         let spStopFlag = lotTable.some((data, i) => {
                             let r = Math.random();
@@ -419,14 +406,27 @@ class NormalEffect extends Effect {
                                 pattern.forEach((v) => {
                                     spStopStack.push(v);
                                 })
-                                if (pattern[2] > 0) stop3Flag = true;
+                                if (pattern[2] > 0) this.stop3Flag = true;
                                 return true;
                             }
                         })
+                        if ((this.stop3Flag && !Rand(4)) || (bonusFlag && this.stop3Flag && !Rand(3))) {
+                            this.stop3Flag = false;
+                            spStopStack = [];
+                            Slot.freeze();
+                            sounder.playSound('yokoku2');
+                            await this.WaveSeg(4);
+                            Slot.resume();
+                            for (let i = 0; i < 3; i++) {
+                                let e = await Slot.once('reelStop');
+                                let slip = e.data.slip;
+                                this.WaveSeg(slip);
+                            }
+                            break
+                        }
 
 
-                        if (stop3Flag && (!this.isART || bonusFlag)) {
-
+                        if (this.stop3Flag && (!this.isART || bonusFlag)) {
                             // 発展フラグ
                             if (bonusFlag && Rand(4)) this.isHatten = true;
                             if (!bonusFlag && !Rand(4)) this.isHatten = true;
@@ -448,114 +448,9 @@ class NormalEffect extends Effect {
                                 spStopStack.forEach((v, i) => {
                                     this.spStop(i, v);
                                 })
-                                await Slot.once('payEnd');
-                                if (gameMode !== 'Normal') return;
-                                sounder.stopSound('bgm');
-                                await Sleep(333);
-                                Slot.freeze();
-                                Slot.flashController.setFlash(flashData.syoto);
-                                sounder.playSound('roulette');
-                                let stopCount = 0;
-
-                                let shuffle = () => {
-                                    setTimeout(() => {
-                                        if (stopCount == 3) return;
-                                        for (let i = 2; i >= stopCount; i--) {
-                                            this.effectManager.Segments.EffectSeg.setSegment(i + 1, '' + Rand(10));
-                                        }
-                                        shuffle();
-                                    }, 10)
-                                }
-                                shuffle();
-
-                                await Sleep(1820);
-                                sounder.playSound('spstop');
-                                stopCount++;
-                                this.effectManager.Segments.EffectSeg.setSegment(1, '7');
-                                await Sleep(333);
-                                sounder.playSound('spstop');
-                                stopCount++;
-                                this.effectManager.Segments.EffectSeg.setSegment(2, '7');
-                                await Sleep(333);
-                                sounder.playSound('spstop');
-                                stopCount++;
-
-                                if (!this.isHatten) {
-                                    if (bonusFlag) {
-                                        this.isKokutid = true;
-                                        if (!Rand(8)) {
-                                            this.effectManager.Segments.EffectSeg.setSegment(3, '6');
-                                        } else {
-                                            this.effectManager.Segments.EffectSeg.setSegment(3, '7');
-                                        }
-                                        await Sleep(1000);
-                                        Slot.flashController.clearFlashReservation();
-                                        this.effectManager.Segments.EffectSeg.setSegment(3, '7');
-                                        Slot.flashController.setFlash(flashData.BlueFlash);
-                                        await sounder.playSound('kokuti');
-                                        Slot.resume();
-                                        Slot.flashController.clearFlashReservation();
-                                    } else {
-                                        this.effectManager.Segments.EffectSeg.setSegment(3, '6');
-                                        await Sleep(1000);
-                                        Slot.flashController.clearFlashReservation();
-                                        Slot.resume();
-                                    }
-                                    return;
-                                }
-                                this.effectManager.Segments.EffectSeg.setSegment(3, 'H');
-
-                                sounder.playSound('histart')
-                                await Sleep(1000);
                             }
                             //発展演出
 
-                            let isShuffleEnd = false;
-                            let segs = this.effectManager.Segments.EffectSeg.randomSeg();
-                            let shuffle = () => {
-                                setTimeout(() => {
-                                    if (isShuffleEnd) return;
-                                    segs.forEach(s => s.next());
-                                    shuffle();
-                                }, 50)
-                            }
-                            shuffle();
-
-                            Slot.flashController.clearFlashReservation();
-                            Slot.resume();
-                            sounder.playSound('hiroulette', true);
-                            await Slot.once('payEnd');
-                            isShuffleEnd = true;
-                            if (gameMode !== 'Normal') return;
-                            Slot.freeze();
-                            sounder.stopSound('bgm');
-                            sounder.playSound('hirouletteend');
-                            this.effectManager.Segments.EffectSeg.setSegments('000');
-                            for (let i = 0; i < 7; i++) {
-                                sounder.playSound('spstop');
-                                if (i % 2 == 1) {
-                                    this.effectManager.Segments.EffectSeg.setSegment(2, '' + (i + 1));
-                                } else {
-                                    this.effectManager.Segments.EffectSeg.setSegment(1, '' + (i + 1));
-                                    this.effectManager.Segments.EffectSeg.setSegment(3, '' + (i + 1));
-                                }
-                                await Sleep(410)
-                            }
-                            if (bonusFlag) {
-                                this.isKokutid = true;
-                                this.effectManager.Segments.EffectSeg.setSegment(2, '7');
-                                Slot.flashController.clearFlashReservation();
-                                Slot.flashController.setFlash(flashData.BlueFlash);
-                                await sounder.playSound('kokuti');
-                                await Sleep(1000);
-                                Slot.resume();
-                                Slot.flashController.clearFlashReservation();
-                            } else {
-                                await Sleep(1000);
-                                Slot.flashController.clearFlashReservation();
-                                Slot.resume();
-                            }
-                            this.isHatten = false;
                         } else {
                             spStopStack.forEach((v, i) => {
                                 this.spStop(i, v);
@@ -573,7 +468,7 @@ class NormalEffect extends Effect {
                         if (bgmStopFlag) {
                             Slot.once('allReelStop', () => {
                                 if (gameMode == 'Normal')
-                                    sounder.stopSound('bgm');
+                                    sounder.stopSound('BGM');
                             })
                         }
                 }
@@ -593,13 +488,13 @@ class NormalEffect extends Effect {
                 this.isBonusTypeKokutid = false;
                 this.isHatten = false;
                 if (control === ControlName.ボーナス小役1) return;
-                let segs = this.effectManager.Segments.EffectSeg.randomSeg().slice(1, 3);
+                let segs = this.effectManager.Segments.EffectSeg.randomSeg().slice(0, 3);
                 this.effectManager.Segments.EffectSeg.setSegment(1, '-')
                 this.effectManager.Segments.EffectSeg.setSegment(3, '-')
-                let isShuffleEnd = false;
+                this.isShuffleEnd = false;
                 let shuffle = () => {
                     setTimeout(() => {
-                        if (isShuffleEnd) return;
+                        if (this.isShuffleEnd) return;
                         segs.forEach(s => s.next());
                         shuffle();
                     }, 50)
@@ -609,18 +504,18 @@ class NormalEffect extends Effect {
                 let event = await Slot.once('reelStop');
                 let bitaMiss = false;
                 if (event.data.idx !== 1 || Slot.reelController.reels[1].reelChipPosition !== 0) {
-                    isShuffleEnd = true;
+                    this.isShuffleEnd = true;
                     this.effectManager.Segments.EffectSeg.reset();
                     bitaMiss = true
                 } else {
                     sounder.playSound('bita');
                 }
-
+                console.log(bitaMiss, this)
                 if (bitaMiss && !this.isHyper) return;
                 await Slot.once('allReelStop');
                 Slot.flashController.clearFlashReservation();
                 Slot.flashController.setFlash(flashData.syoto);
-                isShuffleEnd = true;
+                this.isShuffleEnd = true;
 
                 let r = Rand(1000);
                 let index = this.ARTBitaTable.LotValue.findIndex(v => {
@@ -637,17 +532,18 @@ class NormalEffect extends Effect {
                 if (appendGameCount > 100) appendGameCount -= 100;
                 let str = ("  " + appendGameCount).slice(-2);
                 let blinkFlag = false;
-                this.effectManager.Segments.EffectSeg.setSegment(0, '-')
+                this.effectManager.Segments.EffectSeg.setSegment(1, '-')
                 this.effectManager.Segments.EffectSeg.setSegment(3, '-')
                 let blinker = (f: boolean) => {
                     setTimeout(() => {
                         if (blinkFlag) return;
+                        this.effectManager.Segments.EffectSeg.reset();
                         if (f) {
-                            this.effectManager.Segments.EffectSeg.setSegment(1, str[0]);
-                            this.effectManager.Segments.EffectSeg.setSegment(2, str[1]);
+                            this.effectManager.Segments.EffectSeg.setSegment(2, str[0]);
+                            this.effectManager.Segments.EffectSeg.setSegment(3, str[1]);
                         } else {
-                            this.effectManager.Segments.EffectSeg.setSegment(1, " ");
                             this.effectManager.Segments.EffectSeg.setSegment(2, " ");
+                            this.effectManager.Segments.EffectSeg.setSegment(3, " ");
                         }
                         blinker(!f);
                     }, 20)
@@ -661,47 +557,274 @@ class NormalEffect extends Effect {
         }
 
     }
+    ARTStart() {
+        sounder.stopSound('BGM')
+        if (this.ARTStock > 0) {
+            sounder.playSound('RT2', true);
+        } else {
+            sounder.playSound('RT1', true);
+        }
+    }
     async payEffect(payCoin: number, hitYakuDatas: HitYakuData[], gameMode: GameMode, bonusFlag: BonusFlag): Promise<void> {
-        for (let yaku of hitYakuDatas) {
-            switch (yaku.yaku?.name) {
-                case "赤7":
-                case "青7":
-                case "BAR":
-                    if (this.isART) {
-                        this.isHyper = true;
+        switch (gameMode) {
+            case "Normal":
+                if (this.isART) {
+                    if (this.ExtraART) {
+                        this.ExtraARTGame--;
+                        if (this.ExtraARTGame === 0) {
+                            if (Math.random() < this.ExtraARTLot) {
+                                this.ExtraARTGame = NormalEffect.ExtraARTGameBase;
+                                sounder.playSound('bita');
+                            } else {
+                                this.ExtraART = false;
+                                this.ARTStart();
+                            }
+                        }
                     } else {
-                        this.isHyper = false;
-                        this.renStartCoin = SaveData.coin;
-                    }
-                    let bgmData;
-                    if (this.isHyper) {
-                        bgmData = {
-                            tag: "BIG1",
-                            loopStart: 1.156
-                        };
-                    } else {
-                        bgmData = {
-                            tag: "SBIG",
-                            loopStart: 0
+                        if (this.ARTStock === 0) {
+                            this.ARTStock = -1;
+                            sounder.stopSound('BGM');
+                            if (RTData.rt instanceof HighRT || bonusFlag) {
+                                sounder.playSound('RT1', true);
+                            } else {
+                                this.ARTEndEffect();
+                            }
+                        }
+                        if (!(RTData.rt instanceof HighRT) && !bonusFlag) {
+                            sounder.stopSound('BGM');
+                            this.ARTEndEffect();
                         }
                     }
+                }
 
-                    this.setNabi([false, false, false]);
-                    sounder.stopSound("bgm");
-                    sounder.playSound(bgmData.tag, true);
+                if (this.stop3Flag) {
+                    if (!(!this.isART || bonusFlag)) return;
+                    if (gameMode !== 'Normal') return;
+                    sounder.stopSound('BGM');
+                    await Sleep(333);
+                    Slot.freeze();
+                    Slot.flashController.setFlash(flashData.syoto);
+                    sounder.playSound('roulette');
+                    let stopCount = 0;
 
-                    break
-            }
+                    let shuffle = () => {
+                        setTimeout(() => {
+                            if (stopCount == 3) return;
+                            for (let i = 2; i >= stopCount; i--) {
+                                this.effectManager.Segments.EffectSeg.setSegment(i + 1, '' + Rand(10));
+                            }
+                            shuffle();
+                        }, 10)
+                    }
+                    shuffle();
 
+                    await Sleep(1820);
+                    sounder.playSound('spstop');
+                    stopCount++;
+                    this.effectManager.Segments.EffectSeg.setSegment(1, '7');
+                    await Sleep(333);
+                    sounder.playSound('spstop');
+                    stopCount++;
+                    this.effectManager.Segments.EffectSeg.setSegment(2, '7');
+                    await Sleep(333);
+                    sounder.playSound('spstop');
+                    stopCount++;
 
+                    if (!this.isHatten) {
+                        if (bonusFlag) {
+                            this.isKokutid = true;
+                            if (!Rand(8)) {
+                                this.effectManager.Segments.EffectSeg.setSegment(3, '6');
+                            } else {
+                                this.effectManager.Segments.EffectSeg.setSegment(3, '7');
+                            }
+                            await Sleep(1000);
+                            Slot.flashController.clearFlashReservation();
+                            this.effectManager.Segments.EffectSeg.setSegment(3, '7');
+                            Slot.flashController.setFlash(flashData.BlueFlash);
+                            await sounder.playSound('kokuti');
+                            Slot.resume();
+                            Slot.flashController.clearFlashReservation();
+                        } else {
+                            this.effectManager.Segments.EffectSeg.setSegment(3, '6');
+                            await Sleep(1000);
+                            Slot.flashController.clearFlashReservation();
+                            Slot.resume();
+                        }
+                        return;
+                    } else {
+                        this.effectManager.Segments.EffectSeg.setSegment(3, 'H');
 
+                        sounder.playSound('histart')
+                        await Sleep(1000);
+
+                        this.isShuffleEnd = false;
+                        let segs = this.effectManager.Segments.EffectSeg.randomSeg();
+                        let shuffle = () => {
+                            setTimeout(() => {
+                                if (this.isShuffleEnd) return;
+                                segs.forEach(s => s.next());
+                                shuffle();
+                            }, 50)
+                        }
+                        shuffle();
+
+                        Slot.flashController.clearFlashReservation();
+                        Slot.resume();
+                        sounder.playSound('hiroulette', true);
+                    }
+                } else {
+                    if (this.isHatten) {
+                        this.isShuffleEnd = true;
+                        if (gameMode !== 'Normal') return;
+                        Slot.freeze();
+                        sounder.stopSound('BGM');
+                        sounder.playSound('hirouletteend');
+                        this.effectManager.Segments.EffectSeg.setSegments('000');
+                        for (let i = 0; i < 7; i++) {
+                            sounder.playSound('spstop');
+                            if (i % 2 == 1) {
+                                this.effectManager.Segments.EffectSeg.setSegment(2, '' + (i + 1));
+                            } else {
+                                this.effectManager.Segments.EffectSeg.setSegment(1, '' + (i + 1));
+                                this.effectManager.Segments.EffectSeg.setSegment(3, '' + (i + 1));
+                            }
+                            await Sleep(410)
+                        }
+                        if (bonusFlag) {
+                            this.isKokutid = true;
+                            this.effectManager.Segments.EffectSeg.setSegment(2, '7');
+                            Slot.flashController.clearFlashReservation();
+                            Slot.flashController.setFlash(flashData.BlueFlash);
+                            await sounder.playSound('kokuti');
+                            await Sleep(1000);
+                            Slot.resume();
+                            Slot.flashController.clearFlashReservation();
+                        } else {
+                            await Sleep(1000);
+                            Slot.flashController.clearFlashReservation();
+                            Slot.resume();
+                        }
+                        this.isHatten = false;
+                    }
+                }
+                break
+            case 'BIG':
+            case 'REG':
+                for (let yaku of hitYakuDatas) {
+                    switch (yaku.yaku?.name) {
+                        case "赤7":
+                        case "青7":
+                        case "BAR":
+                            this.isShuffleEnd = true;
+                            sounder.stopSound('BGM');
+                            if (this.isART) {
+                                this.isHyper = true;
+                            } else {
+                                this.isHyper = false;
+                                this.renStartCoin = SaveData.coin;
+                            }
+                            this.isART = true;
+                            this.ExtraART = false;
+                            let bgmData;
+                            if (!this.isHyper) {
+                                bgmData = {
+                                    tag: "BIG1"
+                                };
+                            } else {
+                                bgmData = {
+                                    tag: "SBIG"
+                                }
+                            }
+                            this.setNabi([false, false, false]);
+                            sounder.stopSound("BGM");
+                            sounder.playSound(bgmData.tag, true);
+
+                            break
+                        case 'REG':
+                            this.isShuffleEnd = true;
+                            sounder.stopSound('BGM');
+                            this.isART = true;
+                    }
+                }
+                break
 
         }
+
     }
     async lotEffect() {
 
     }
-    async onBonusEnd() {
-
+    async onBonusEnd(bonusData: Bonus) {
+        sounder.stopSound('BGM')
+        this.isART = true;
+        if (bonusData.name.includes('BIG')) {
+            this.ARTStart()
+        } else {
+            if (!Rand(3)) {
+                Slot.flashController.setFlash(flashData.RedFlash);
+                await sounder.playSound("bita");
+                let r = [0.50, 0.75, 0.88, 1.00][ArrayLot([25, 30, 30, 15])];
+                this.ExtraART = true;
+                this.ExtraARTLot = r;
+                this.ExtraARTGame = NormalEffect.ExtraARTGameBase;
+                sounder.playSound('RT3', true);
+            } else {
+                this.ExtraART = false;
+                this.ARTStart();
+            }
+        }
+    }
+    LotExtraARTHitGame() {
+        return ArrayLot([5, 5, 5, 10, 5, 10, 60])
+    }
+    async WaveSeg(level: number, wait: number = 50) {
+        /**
+         * Level:0 
+         * 〇〇〇　〇〇〇　〇〇〇
+         * 〇　〇　〇　〇　〇　〇
+         * ◉◉◉　◉◉◉　◉◉◉
+         * 〇　〇　〇　〇　〇　〇
+         * 〇〇〇　〇〇〇　〇〇〇　
+         * Level:1 
+         * ◉◉◉　〇〇〇　◉◉◉
+         * 〇　◉　〇　〇　◉　〇
+         * 〇〇◉　〇　〇　◉　〇
+         * 〇　◉　〇　〇　◉　〇
+         * 〇〇◉　◉◉◉　◉〇〇
+         * Level:2
+         * ◉◉◉　◉〇〇　〇〇〇
+         * ◉　〇　◉　〇　〇　〇
+         * ◉〇〇　◉◉◉　〇〇◉
+         * 〇　〇　〇　◉　〇　◉
+         * 〇〇〇　〇〇◉　◉◉◉　
+         * Level:3
+         * ◉◉◉　〇〇〇　〇〇〇
+         * ◉　◉　〇　〇　〇　〇
+         * ◉〇◉　◉◉◉　◉〇◉
+         * 〇　〇　〇　〇　◉　◉
+         * 〇〇〇　〇〇〇　◉◉◉　
+         * Level:4
+         * ◉◉◉　〇〇〇　◉◉◉
+         * ◉　◉　〇　〇　◉　◉
+         * ◉〇◉　〇　〇　◉〇◉
+         * ◉　◉　〇　〇　◉　◉
+         * ◉〇◉　◉◉◉　◉〇◉　
+         */
+        let PulseTable = [
+            ['g', 'g', 'g'],
+            ['abc', 'd', 'ef'],
+            ['fa', 'fgc', 'dc'],
+            ['fab', 'g', 'edc'],
+            ['efabc', 'd', 'efabc']
+        ]
+        for (let [idx, st] of PulseTable[level].entries()) {
+            if (!st) return;
+            for (let s of st) {
+                await this.effectManager.Segments.EffectSeg.segments[idx].draw({ [s]: 1 })
+                await Sleep(wait);
+                await this.effectManager.Segments.EffectSeg.reset();
+            }
+        }
     }
 }

@@ -68,6 +68,10 @@ export const flashData: { [key: string]: Flash } = {
     BlueFlash: new Flash({
         back: Matrix.from(Array(3).fill(Array(3).fill({ color: 0x0000ff, alpha: 0.4 }))),
         front: Matrix.from(Array(3).fill(Array(3).fill(colorData.SYOTO_F)))
+    }),
+    RedFlash: new Flash({
+        back: Matrix.from(Array(3).fill(Array(3).fill({ color: 0xff0000, alpha: 0.4 }))),
+        front: Matrix.from(Array(3).fill(Array(3).fill(colorData.SYOTO_F)))
     })
 }
 

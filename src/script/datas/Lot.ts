@@ -37,7 +37,7 @@ export const LotData: { [key in GameMode]: SlotLotBase[] } = {
     },
     {
         name: "BIG",
-        value: 1 / 318
+        value: 1 / 288
     },
     {
         name: '共通ベル',
@@ -48,7 +48,7 @@ export const LotData: { [key in GameMode]: SlotLotBase[] } = {
         value: 1 / 192
     }, {
         name: 'REG',
-        value: 1 / 398
+        value: 1 / 320
     }
 
     ],

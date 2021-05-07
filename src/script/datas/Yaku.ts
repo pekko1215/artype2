@@ -118,13 +118,25 @@ export const yakuData: YakuData[] = [
     },
     {
         name: "チェリー",
-        pay: [2, 0, 12]
+        pay: [2, 12, 12]
     }, {
         name: 'REG',
         pay: [0, 0, 0]
     }, {
         name: 'REG小役',
         pay: [0, 0, 12]
+    },
+    {
+        name: "リーチ目リプレイ",
+        pay: [0, 0, 0]
+    },
+    {
+        name: "リーチ目リプレイ",
+        pay: [0, 0, 0]
+    },
+    {
+        name: "リーチ目リプレイ",
+        pay: [0, 0, 0]
     },
     {
         name: "リーチ目リプレイ",

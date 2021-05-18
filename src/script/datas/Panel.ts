@@ -7,8 +7,8 @@ export const panelData = new (class implements PanelData {
     y: 10,
     blank: 20,
     defaultFlash: flashData.default,
-    speed: 38,
-    slipSpeed: 38,
+    speed: 40,
+    slipSpeed: 40,
   };
   PIXIOptions = {
     width: 625,
